@@ -55,71 +55,100 @@ async def draw_music_info(music: Music, level_index: Optional[int] = None) -> Un
         im.alpha_composite(Image.open(maimaidir / 'logo.png').resize((249, 120)), (65, 25))
         if music.basic_info and music.basic_info.is_new:
             im.alpha_composite(Image.open(maimaidir / 'UI_CMN_TabTitle_NewSong.png').resize((249, 120)), (940, 100))
-        songbg = Image.open(music_picture(music.id)).resize((280, 280))
+        songbg = Image.open(music_picture(music.id or '0')).resize((280, 280))
         im.alpha_composite(rounded_corners(songbg, 17, (True, False, False, True)), (110, 180))
         if music.basic_info and music.basic_info.version:
             im.alpha_composite(Image.open(maimaidir / f'{music.basic_info.version}.png').resize((182, 90)), (800, 370))
         if music.type:
             im.alpha_composite(Image.open(maimaidir / f'{music.type}.png').resize((80, 30)), (410, 375))
 
-        title = music.title
-        if coloumWidth(title) > 40:
+        title = music.title or ''
+        if title and coloumWidth(title) > 40:
             title = changeColumnWidth(title, 39) + '...'
         mr.draw(405, 220, 28, title, default_color, 'lm')
         artist = music.basic_info.artist if music.basic_info else ''
-        if coloumWidth(artist) > 50:
+        if artist and coloumWidth(artist) > 50:
             artist = changeColumnWidth(artist, 49) + '...'
         mr.draw(407, 265, 20, artist, default_color, 'lm')
-        if music.basic_info:
+        if music.basic_info and music.basic_info.bpm:
             tb.draw(460, 330, 30, music.basic_info.bpm, default_color, 'lm')
-        tb.draw(405, 435, 28, f'ID {music.id}', default_color, 'lm')
-        if music.basic_info:
+        tb.draw(405, 435, 28, f'ID {music.id or "0"}', default_color, 'lm')
+        if music.basic_info and music.basic_info.genre:
             mr.draw(665, 435, 24, music.basic_info.genre, default_color, 'mm')
 
         if level_index is not None:
             # 只显示指定难度
-            if level_index >= len(music.level):
+            if not music.level or level_index >= len(music.level):
                 return '该难度不存在'
             
             color = (255, 255, 255, 255)
-            tb.draw(181, 610 + 73 * level_index, 30, f'{music.level[level_index]}({music.ds[level_index]})', color, 'mm')
-            tb.draw(
-                315, 600 + 73 * level_index, 30, 
-                f'{round(music.stats[level_index].fit_diff, 2):.2f}' if music.stats and music.stats[level_index] else '-', 
-                default_color, 'mm'
-            )
-            notes = list(music.charts[level_index].notes)
-            tb.draw(437, 600 + 73 * level_index, 30, sum(notes), default_color, 'mm')
-            if len(notes) == 4:
-                notes.insert(3, '-')
-            for n, c in enumerate(notes):
-                tb.draw(556 + 119 * n, 600 + 73 * level_index, 30, c, default_color, 'mm')
-            if level_index > 1:
-                charter = music.charts[level_index].charter
-                if coloumWidth(charter) > 19:
-                    charter = changeColumnWidth(charter, 18) + '...'
-                mr.draw(372, 1030 + 47 * (level_index - 2), 18, charter, default_color, 'mm')
-        else:
-            # 显示所有难度
-            for num, _ in enumerate(music.level):
-                color = (255, 255, 255, 255)
-                tb.draw(181, 610 + 73 * num, 30, f'{music.level[num]}({music.ds[num]})', color, 'mm')
-                tb.draw(
-                    315, 600 + 73 * num, 30, 
-                    f'{round(music.stats[num].fit_diff, 2):.2f}' if music.stats and music.stats[num] else '-', 
-                    default_color, 'mm'
-                )
-                notes = list(music.charts[num].notes)
-                tb.draw(437, 600 + 73 * num, 30, sum(notes), default_color, 'mm')
+            level_str = music.level[level_index] if music.level else ''
+            ds_str = str(music.ds[level_index]) if music.ds else ''
+            tb.draw(181, 610 + 73 * level_index, 30, f'{level_str}({ds_str})', color, 'mm')
+            
+            # 处理fit_diff显示
+            fit_diff_text = '-'
+            if music.stats and len(music.stats) > level_index and music.stats[level_index]:
+                stats = music.stats[level_index]
+                if stats.fit_diff is not None:
+                    fit_diff_text = f'{stats.fit_diff:.2f}'
+            tb.draw(315, 600 + 73 * level_index, 30, fit_diff_text, default_color, 'mm')
+            
+            # 处理谱面信息
+            if music.charts and len(music.charts) > level_index and music.charts[level_index]:
+                notes = list(music.charts[level_index].notes or [])
+                tb.draw(437, 600 + 73 * level_index, 30, sum(notes) if notes else 0, default_color, 'mm')
                 if len(notes) == 4:
-                    notes.insert(3, '-')
+                    notes.insert(3, 0)  # 使用0代替'-'
                 for n, c in enumerate(notes):
-                    tb.draw(556 + 119 * n, 600 + 73 * num, 30, c, default_color, 'mm')
-                if num > 1:
-                    charter = music.charts[num].charter
+                    tb.draw(556 + 119 * n, 600 + 73 * level_index, 30, str(c), default_color, 'mm')
+                if level_index > 1:
+                    charter = music.charts[level_index].charter or ''
                     if coloumWidth(charter) > 19:
                         charter = changeColumnWidth(charter, 18) + '...'
-                    mr.draw(372, 1030 + 47 * (num - 2), 18, charter, default_color, 'mm')
+                    mr.draw(372, 1030 + 47 * (level_index - 2), 18, charter, default_color, 'mm')
+                    # 添加成绩等级表格
+                    if music.ds and len(music.ds) > level_index:
+                        ra = sorted([computeRa(music.ds[level_index], r) for r in achievementList[-6:]], reverse=True)
+                        for _n, value in enumerate(ra):
+                            tb.draw(536 + 101 * _n, 1030 + 47 * (level_index - 2), 25, value, default_color, 'mm')
+        else:
+            # 显示所有难度
+            for num in range(5):  # 修改这里，确保遍历所有可能的难度（0-4）
+                if not music.level or num >= len(music.level):  # 如果该难度不存在，跳过
+                    continue
+                    
+                color = (255, 255, 255, 255)
+                level_str = music.level[num] if music.level else ''
+                ds_str = str(music.ds[num]) if music.ds else ''
+                tb.draw(181, 610 + 73 * num, 30, f'{level_str}({ds_str})', color, 'mm')
+                
+                # 处理fit_diff显示
+                fit_diff_text = '-'
+                if music.stats and len(music.stats) > num and music.stats[num]:
+                    stats = music.stats[num]
+                    if stats.fit_diff is not None:
+                        fit_diff_text = f'{stats.fit_diff:.2f}'
+                tb.draw(315, 600 + 73 * num, 30, fit_diff_text, default_color, 'mm')
+                
+                # 处理谱面信息
+                if music.charts and len(music.charts) > num and music.charts[num]:
+                    notes = list(music.charts[num].notes or [])
+                    tb.draw(437, 600 + 73 * num, 30, sum(notes) if notes else 0, default_color, 'mm')
+                    if len(notes) == 4:
+                        notes.insert(3, 0)  # 使用0代替'-'
+                    for n, c in enumerate(notes):
+                        tb.draw(556 + 119 * n, 600 + 73 * num, 30, str(c), default_color, 'mm')
+                    if num > 1:
+                        charter = music.charts[num].charter or ''
+                        if coloumWidth(charter) > 19:
+                            charter = changeColumnWidth(charter, 18) + '...'
+                        mr.draw(372, 1030 + 47 * (num - 2), 18, charter, default_color, 'mm')
+                        # 添加成绩等级表格
+                        if music.ds and len(music.ds) > num:
+                            ra = sorted([computeRa(music.ds[num], r) for r in achievementList[-6:]], reverse=True)
+                            for _n, value in enumerate(ra):
+                                tb.draw(536 + 101 * _n, 1030 + 47 * (num - 2), 25, value, default_color, 'mm')
 
         mr.draw(600, 1212, 22, f'Designed by Yuri-YuzuChaN & BlueDeer233. Adapted by AbyssSeeker', default_color, 'mm')
         return im

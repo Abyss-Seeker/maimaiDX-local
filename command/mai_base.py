@@ -58,10 +58,7 @@ def draw_today_fortune_image(user_id, rp, wm_list, wm_value, music, ds):
     font_title = ImageFont.truetype(str(SHANGGUMONO), 48)
     font_sub = ImageFont.truetype(str(SHANGGUMONO), 32)
     font_text = ImageFont.truetype(str(SHANGGUMONO), 26)
-    font_title = ImageFont.truetype(str(__init__.SHANGGUMONO), 48)
-    font_sub = ImageFont.truetype(str(__init__.SHANGGUMONO), 32)
-    font_text = ImageFont.truetype(str(__init__.SHANGGUMONO), 26)
-    font_small = ImageFont.truetype(str(__init__.SHANGGUMONO), 24)
+    font_small = ImageFont.truetype(str(SHANGGUMONO), 24)
     
     # 辅助函数：自动换行
     def draw_wrapped_text(text, x, y, font, fill, max_width, line_height=None):
@@ -172,7 +169,7 @@ def draw_today_fortune_image(user_id, rp, wm_list, wm_value, music, ds):
 # CLI 版指令实现
 
 def maimaidxhelp_cli():
-    help_img = Image.open((__init__.Root / 'maimaidxhelp.png'))
+    help_img = Image.open((Root / 'maimaidxhelp.png'))
     out_path = Path("help_image.png")
     help_img.save(out_path)
     print(f"帮助图片已保存到: {out_path}")

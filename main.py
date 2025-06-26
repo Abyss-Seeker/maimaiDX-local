@@ -51,7 +51,7 @@ async def main():
             print(f"数据加载失败: {e}")
             print("请手动执行 'init' 命令重新初始化")
     
-    print("欢迎使用 AbyssSeeker 终端！输入 help 查看所有指令，输入 exit 退出。")
+    print("欢迎使用 MaimaiDX-Local 终端！输入 help 查看所有指令，输入 exit 退出。")
     while True:
         cmd = input("\n>>> ").strip()
         if cmd.lower() in ("exit", "quit", "q"):
