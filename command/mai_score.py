@@ -1,113 +1,125 @@
 import re
 from textwrap import dedent
+from libraries.config import score_Rank_l, fcl, fsl, category
+from libraries.image import image_to_base64, text_to_image
+from libraries.maimai_best_50 import generate, computeRa, dxScore, coloumWidth, changeColumnWidth
+from libraries.maimaidx_music import mai
+from libraries.maimaidx_music_info import draw_music_play_data, draw_music_info
+from libraries.maimaidx_player_score import music_global_data
+from libraries.config import score_Rank_l, fcl, fsl, category
+import PIL.Image
+from typing import List, Optional, Union, Tuple, cast
+from PIL import Image
+from libraries.maimaidx_model import Notes1, Notes2
 
-from nonebot import NoneBot
+def log(*args, **kwargs):
+    print(*args, **kwargs)
 
-from hoshino.typing import CQEvent, MessageSegment
+# CLI 版指令实现
+async def b50_cli(username=None):
+    img = await generate(username or "")
+    if isinstance(img, PIL.Image.Image):
+        img_path = f"b50_{username}.png"
+        img.save(img_path)
+        print(f"B50图片已保存到: {img_path}")
+    else:
+        print(img)
 
-from .. import log, sv
-from ..libraries.image import image_to_base64, text_to_image
-from ..libraries.maimai_best_50 import generate
-from ..libraries.maimaidx_music import mai
-from ..libraries.maimaidx_music_info import draw_music_play_data
-from ..libraries.maimaidx_player_score import music_global_data
-
-best50  = sv.on_prefix(['b50', 'B50'])
-minfo   = sv.on_prefix(['minfo', 'Minfo', 'MINFO', 'info', 'Info', 'INFO'])
-ginfo   = sv.on_prefix(['ginfo', 'Ginfo', 'GINFO'])
-score   = sv.on_prefix(['分数线'])
-
-
-@best50
-async def _(bot: NoneBot, ev: CQEvent):
-    qqid = ev.user_id
-    username: str = ev.message.extract_plain_text().strip()
-    for i in ev.message:
-        if i.type == 'at' and i.data['qq'] != 'all':
-            qqid = int(i.data['qq'])
-    await bot.send(ev, await generate(qqid, username), at_sender=True)
+async def minfo_cli(username: str, args: str) -> Union[str, Image.Image]:
+    """
+    查询玩家游玩记录
     
-    
-@minfo
-async def _(bot: NoneBot, ev: CQEvent):
-    qqid = ev.user_id
-    args: str = ev.message.extract_plain_text().strip().lower()
-    for i in ev.message:
-        if i.type == 'at' and i.data['qq'] != 'all':
-            qqid = int(i.data['qq'])
+    Args:
+        username: 用户名
+        args: 曲目ID或曲名
+    Returns:
+        Union[str, Image.Image]: 游玩记录图片或错误信息
+    """
+    args = args.strip()
     if not args:
-        await bot.finish(ev, '请输入曲目id或曲名', at_sender=True)
+        return '请输入曲目id或曲名'
 
+    # 查找曲目
     if mai.total_list.by_id(args):
-        songs = args
+        song_id = args
     elif by_t := mai.total_list.by_title(args):
-        songs = by_t.id
+        song_id = by_t.id
     else:
         alias = mai.total_alias_list.by_alias(args)
         if not alias:
-            await bot.finish(ev, '未找到曲目', at_sender=True)
+            return '未找到曲目'
         elif len(alias) != 1:
             msg = f'找到相同别名的曲目，请使用以下ID查询：\n'
-            for songs in alias:
-                msg += f'{songs.SongID}：{songs.Name}\n'
-            await bot.finish(ev, msg.strip(), at_sender=True)
+            for song in alias:
+                msg += f'{song.SongID}：{song.Name}\n'
+            return msg.strip()
         else:
-            songs = str(alias[0].SongID)
-    pic = await draw_music_play_data(qqid, songs)
-    await bot.send(ev, pic, at_sender=True)
+            song_id = str(alias[0].SongID)
 
+    return await draw_music_play_data(username, song_id)
 
-@ginfo
-async def _(bot: NoneBot, ev: CQEvent):
-    args: str = ev.message.extract_plain_text().strip().lower()
+async def ginfo_cli(args: str) -> Union[str, Image.Image]:
+    """
+    查询曲目信息
+    
+    Args:
+        args: 参数字符串，格式为 "难度 曲目ID/曲名"
+    Returns:
+        Union[str, Image.Image]: 曲目信息图片或错误信息
+    """
+    args = args.strip()
     if not args:
-        await bot.finish(ev, '请输入曲目id或曲名', at_sender=True)
-    if args[0] not in '绿黄红紫白':
-        level_index = 3
+        return '请输入难度+曲目id或曲名'
+
+    # 解析难度和曲目
+    parts = args.split(maxsplit=1)
+    if len(parts) != 2:
+        return '格式错误，请输入难度+曲目id或曲名'
+    
+    difficulty, song = parts
+    if difficulty[0] not in '绿黄红紫白':
+        return '难度必须是绿/黄/红/紫/白之一'
+    
+    level_index = '绿黄红紫白'.index(difficulty[0])
+    song = song.strip()
+
+    # 查找曲目
+    if mai.total_list.by_id(song):
+        music = mai.total_list.by_id(song)
+    elif by_t := mai.total_list.by_title(song):
+        music = by_t
     else:
-        level_index = '绿黄红紫白'.index(args[0])
-        args = args[1:].strip()
-        if not args:
-            await bot.finish(ev, '请输入曲目id或曲名', at_sender=True)
-    if mai.total_list.by_id(args):
-        id = args
-    elif by_t := mai.total_list.by_title(args):
-        id = by_t.id
-    else:
-        alias = mai.total_alias_list.by_alias(args)
+        alias = mai.total_alias_list.by_alias(song)
         if not alias:
-            await bot.finish(ev, '未找到曲目', at_sender=True)
+            return '未找到曲目'
         elif len(alias) != 1:
             msg = f'找到相同别名的曲目，请使用以下ID查询：\n'
-            for songs in alias:
-                msg += f'{songs.SongID}：{songs.Name}\n'
-            await bot.finish(ev, msg.strip(), at_sender=True)
+            for song in alias:
+                msg += f'{song.SongID}：{song.Name}\n'
+            return msg.strip()
         else:
-            id = str(alias[0].SongID)
+            music = mai.total_list.by_id(str(alias[0].SongID))
+            if not music:
+                return '未找到曲目'
 
-    music = mai.total_list.by_id(id)
-    if not music.stats:
-        await bot.finish(ev, '该乐曲还没有统计信息', at_sender=True)
-    if len(music.ds) == 4 and level_index == 4:
-        await bot.finish(ev, '该乐曲没有这个等级', at_sender=True)
-    if not music.stats[level_index]:
-        await bot.finish(ev, '该等级没有统计信息', at_sender=True)
-    stats = music.stats[level_index]
-    info = dedent(f'''\
-        游玩次数：{round(stats.cnt)}
-        拟合难度：{stats.fit_diff:.2f}
-        平均达成率：{stats.avg:.2f}%
-        平均 DX 分数：{stats.avg_dx:.1f}
-        谱面成绩标准差：{stats.std_dev:.2f}''')
-    await bot.send(ev, await music_global_data(music, level_index) + info, at_sender=True)
+    return await draw_music_info(music, level_index)
+
+async def score_cli(args: str) -> str:
+    """
+    计算分数线
     
-    
-@score
-async def _(bot: NoneBot, ev: CQEvent):
-    args: str = ev.message.extract_plain_text().strip()
-    pro = args.split()
-    if len(pro) == 1 and pro[0] == '帮助':
-        msg = dedent('''\
+    Args:
+        args: 参数字符串，格式为 "难度+歌曲id 分数线"
+    Returns:
+        str: 计算结果或错误信息
+    """
+    args = args.strip()
+    if not args:
+        return '请输入难度+歌曲id和分数线'
+
+    # 显示帮助信息
+    if args == '帮助':
+        return dedent('''\
             此功能为查找某首歌分数线设计。
             命令格式：分数线「难度+歌曲id」「分数线」
             例如：分数线 紫799 100
@@ -121,37 +133,78 @@ async def _(bot: NoneBot, ev: CQEvent):
             TOUCH       1 / 2.5  / 5
             BREAK       5 / 12.5 / 25 (外加200落)
         ''').strip()
-        await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg))), at_sender=True)
-    else:
-        try:
-            result = re.search(r'([绿黄红紫白])\s?([0-9]+)', args)
-            level_labels = ['绿', '黄', '红', '紫', '白']
-            level_labels2 = ['Basic', 'Advanced', 'Expert', 'Master', 'Re:MASTER']
-            level_index = level_labels.index(result.group(1))
-            chart_id = result.group(2)
-            line = float(pro[-1])
-            music = mai.total_list.by_id(chart_id)
-            chart = music.charts[level_index]
-            tap = int(chart.notes.tap)
-            slide = int(chart.notes.slide)
-            hold = int(chart.notes.hold)
-            touch = int(chart.notes.touch) if len(chart.notes) == 5 else 0
-            brk = int(chart.notes.brk)
-            total_score = tap * 500 + slide * 1500 + hold * 1000 + touch * 500 + brk * 2500
-            break_bonus = 0.01 / brk
-            break_50_reduce = total_score * break_bonus / 4
-            reduce = 101 - line
-            if reduce <= 0 or reduce >= 101:
-                raise ValueError
-            msg = dedent(f'''\
-                {music.title}「{level_labels2[level_index]}」
-                分数线「{line}%」
-                允许的最多「TAP」「GREAT」数量为 
-                「{(total_score * reduce / 10000):.2f}」(每个-{10000 / total_score:.4f}%),
-                「BREAK」50落(一共「{brk}」个)
-                等价于「{(break_50_reduce / 100):.3f}」个「TAP」「GREAT」(-{break_50_reduce / total_score * 100:.4f}%)
-            ''').strip()
-            await bot.send(ev, msg, at_sender=True)
-        except (AttributeError, ValueError) as e:
-            log.exception(e)
-            await bot.send(ev, '格式错误，输入“分数线 帮助”以查看帮助信息', at_sender=True)
+
+    # 解析参数
+    try:
+        parts = args.split()
+        if len(parts) < 2:
+            return '格式错误，请输入难度+歌曲id和分数线'
+        
+        # 处理难度和歌曲ID
+        if len(parts) == 2:
+            # 格式：紫799 100
+            if not any(diff in parts[0] for diff in '绿黄红紫白'):
+                return '格式错误，难度必须是绿/黄/红/紫/白之一'
+            difficulty = parts[0][0]  # 取第一个字符作为难度
+            song_id = parts[0][1:]    # 剩余部分作为歌曲ID
+            try:
+                score_line = float(parts[1])
+            except ValueError:
+                return '分数线必须是数字'
+        elif len(parts) == 3:
+            # 格式：紫 799 100
+            if parts[0] not in '绿黄红紫白':
+                return '格式错误，难度必须是绿/黄/红/紫/白之一'
+            difficulty = parts[0]
+            song_id = parts[1]
+            try:
+                score_line = float(parts[2])
+            except ValueError:
+                return '分数线必须是数字'
+        else:
+            return '格式错误，请输入难度+歌曲id和分数线'
+
+        if not song_id.isdigit():
+            return '歌曲ID必须是数字'
+        
+        level_labels = ['绿', '黄', '红', '紫', '白']
+        level_labels2 = ['Basic', 'Advanced', 'Expert', 'Master', 'Re:MASTER']
+        level_index = level_labels.index(difficulty)
+        
+        music = mai.total_list.by_id(song_id)
+        if not music:
+            return '未找到曲目'
+
+        # 获取谱面信息
+        chart = music.charts[level_index]
+        notes = chart.notes or []
+        tap = int(notes[0]) if len(notes) > 0 else 0
+        hold = int(notes[1]) if len(notes) > 1 else 0
+        slide = int(notes[2]) if len(notes) > 2 else 0
+        if len(notes) == 5:
+            touch = int(notes[3])
+            brk = int(notes[4])
+        else:
+            touch = 0
+            brk = int(notes[3]) if len(notes) > 3 else 0
+
+        # 计算总分和分数线
+        total_score = tap * 500 + slide * 1500 + hold * 1000 + touch * 500 + brk * 2500
+        break_bonus = 0.01 / brk if brk > 0 else 0
+        break_50_reduce = total_score * break_bonus / 4
+        reduce = 101 - score_line
+
+        if reduce <= 0 or reduce >= 101:
+            return '分数线必须在0-100之间'
+
+        msg = f'''\
+            {music.title}「{level_labels2[level_index]}」
+            分数线「{score_line}%」
+            允许的最多「TAP」「GREAT」数量为 
+            「{(total_score * reduce / 10000):.2f}」(每个-{10000 / total_score:.4f}%),
+            「BREAK」50落(一共「{brk}」个)
+            等价于「{(break_50_reduce / 100):.3f}」个「TAP」「GREAT」(-{break_50_reduce / total_score * 100:.4f}%)
+        '''
+        return dedent(msg).strip()
+    except Exception as e:
+        return f'计算时出错：{str(e)}'

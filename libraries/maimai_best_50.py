@@ -1,13 +1,11 @@
 import math
 import traceback
 from io import BytesIO
-from typing import Optional, Tuple, Union, overload
+from typing import Optional, Tuple, Union, overload, List
 
 from PIL import Image, ImageDraw
 
-from hoshino.typing import MessageSegment
-
-from .. import *
+from libraries.config import BOTNAME, maimaidir, coverdir, ratingdir, platedir, SIYUAN, SHANGGUMONO, TBFONT, score_Rank_l, fcl, fsl
 from .image import DrawText, image_to_base64, music_picture
 from .maimaidx_api_data import maiApi
 from .maimaidx_error import *
@@ -39,8 +37,6 @@ class ScoreBaseImage:
         (159, 81, 220, 255), 
         (219, 170, 255, 255)
     ]
-    id_diff = [Image.new('RGBA', (55, 10), color) for color in bg_color]
-    
     _diff = []
     _rise = []
     title_bg = None
@@ -54,34 +50,51 @@ class ScoreBaseImage:
 
     @classmethod
     def _load_image(cls):
+        def safe_open(path, size=None, mode=None, name_hint=None):
+            try:
+                img = Image.open(path)
+                if mode:
+                    img = img.convert(mode)
+                if size:
+                    img = img.resize(size)
+                return img
+            except Exception as e:
+                print(f"[图片缺失] 无法加载 {path}，用于{name_hint or path}，将使用空白图代替。错误: {e}")
+                if size:
+                    return Image.new('RGBA', size, (0,0,0,0))
+                return None
+
         cls._diff = [
-            Image.open(maimaidir / 'b50_score_basic.png'), 
-            Image.open(maimaidir / 'b50_score_advanced.png'), 
-            Image.open(maimaidir / 'b50_score_expert.png'), 
-            Image.open(maimaidir / 'b50_score_master.png'), 
-            Image.open(maimaidir / 'b50_score_remaster.png')
+            safe_open(maimaidir / 'b50_score_basic.png', name_hint='b50_score_basic'),
+            safe_open(maimaidir / 'b50_score_advanced.png', name_hint='b50_score_advanced'),
+            safe_open(maimaidir / 'b50_score_expert.png', name_hint='b50_score_expert'),
+            safe_open(maimaidir / 'b50_score_master.png', name_hint='b50_score_master'),
+            safe_open(maimaidir / 'b50_score_remaster.png', name_hint='b50_score_remaster'),
         ]
         cls._rise = [
-            Image.open(maimaidir / 'rise_score_basic.png'),
-            Image.open(maimaidir / 'rise_score_advanced.png'),
-            Image.open(maimaidir / 'rise_score_expert.png'),
-            Image.open(maimaidir / 'rise_score_master.png'),
-            Image.open(maimaidir / 'rise_score_remaster.png')
+            safe_open(maimaidir / 'rise_score_basic.png', name_hint='rise_score_basic'),
+            safe_open(maimaidir / 'rise_score_advanced.png', name_hint='rise_score_advanced'),
+            safe_open(maimaidir / 'rise_score_expert.png', name_hint='rise_score_expert'),
+            safe_open(maimaidir / 'rise_score_master.png', name_hint='rise_score_master'),
+            safe_open(maimaidir / 'rise_score_remaster.png', name_hint='rise_score_remaster'),
         ]
-        cls.title_bg = Image.open(maimaidir / 'title.png')
-        cls.title_lengthen_bg = Image.open(maimaidir / 'title-lengthen.png')
-        cls.design_bg = Image.open(maimaidir / 'design.png')
-        cls.aurora_bg = Image.open(maimaidir / 'aurora.png').convert('RGBA').resize((1400, 220))
-        cls.shines_bg = Image.open(maimaidir / 'bg_shines.png').convert('RGBA')
-        cls.pattern_bg = Image.open(maimaidir / 'pattern.png')
-        cls.rainbow_bg = Image.open(maimaidir / 'rainbow.png').convert('RGBA')
-        cls.rainbow_bottom_bg = Image.open(maimaidir / 'rainbow_bottom.png').convert('RGBA').resize((1200, 200))
+        cls.title_bg = safe_open(maimaidir / 'title.png', name_hint='title')
+        cls.title_lengthen_bg = safe_open(maimaidir / 'title-lengthen.png', name_hint='title-lengthen')
+        cls.design_bg = safe_open(maimaidir / 'design.png', name_hint='design')
+        cls.aurora_bg = safe_open(maimaidir / 'aurora.png', (1400, 220), 'RGBA', 'aurora')
+        cls.shines_bg = safe_open(maimaidir / 'bg_shines.png', None, 'RGBA', 'bg_shines')
+        cls.pattern_bg = safe_open(maimaidir / 'pattern.png', name_hint='pattern')
+        if cls.pattern_bg is None:
+            cls.pattern_bg = Image.new('RGBA', (1400, 365), (0,0,0,0))
+        cls.rainbow_bg = safe_open(maimaidir / 'rainbow.png', None, 'RGBA', 'rainbow')
+        cls.rainbow_bottom_bg = safe_open(maimaidir / 'rainbow_bottom.png', (1200, 200), 'RGBA', 'rainbow_bottom')
+        cls.id_diff = cls._diff
     
     
     def __init__(self, image: Image.Image = None) -> None:
-        if not maiApi.config.saveinmem:
-            self._load_image()
-        
+        # 强制加载图片资源
+        if not ScoreBaseImage._diff or any(i is None for i in ScoreBaseImage._diff):
+            ScoreBaseImage._load_image()
         self._im = image
         dr = ImageDraw.Draw(self._im)
         self._sy = DrawText(dr, SIYUAN)
@@ -114,15 +127,18 @@ class ScoreBaseImage:
             else:
                 x += 276
 
+            # 直接用原图作为背景，左上角对齐，不做resize
+            bg_img = self._diff[info.level_index]
+            if bg_img is not None:
+                self._im.alpha_composite(bg_img, (x, y))
             cover = Image.open(music_picture(info.song_id)).resize((75, 75))
+            self._im.alpha_composite(cover, (x + 12, y + 12))
             version = Image.open(maimaidir / f'{info.type.upper()}.png').resize((37, 14))
             if info.rate.islower():
                 rate = Image.open(maimaidir / f'UI_TTR_Rank_{score_Rank_l[info.rate]}.png').resize((63, 28))
             else:
                 rate = Image.open(maimaidir / f'UI_TTR_Rank_{info.rate}.png').resize((63, 28))
 
-            self._im.alpha_composite(self._diff[info.level_index], (x, y))
-            self._im.alpha_composite(cover, (x + 12, y + 12))
             self._im.alpha_composite(version, (x + 51, y + 91))
             self._im.alpha_composite(rate, (x + 92, y + 78))
             if info.fc:
@@ -151,7 +167,7 @@ class ScoreBaseImage:
 
 class DrawBest(ScoreBaseImage):
 
-    def __init__(self, UserInfo: UserInfo, qqid: Optional[Union[int, str]] = None) -> None:
+    def __init__(self, UserInfo: UserInfo) -> None:
         super().__init__(Image.open(maimaidir / 'b50_bg.png').convert('RGBA'))
         self.userName = UserInfo.nickname
         self.plate = UserInfo.plate
@@ -159,7 +175,6 @@ class DrawBest(ScoreBaseImage):
         self.Rating = UserInfo.rating
         self.sdBest = UserInfo.charts.sd
         self.dxBest = UserInfo.charts.dx
-        self.qqid = qqid
 
     def _findRaPic(self) -> str:
         """
@@ -222,12 +237,6 @@ class DrawBest(ScoreBaseImage):
         self._im.alpha_composite(plate, (300, 60))
         icon = Image.open(maimaidir / 'UI_Icon_309503.png').resize((120, 120))
         self._im.alpha_composite(icon, (305, 65))
-        if self.qqid:
-            try:
-                qqLogo = Image.open(BytesIO(await maiApi.qqlogo(qqid=self.qqid)))
-                self._im.alpha_composite(qqLogo.convert('RGBA').resize((120, 120)), (305, 65))
-            except Exception:
-                pass
         self._im.alpha_composite(dx_rating, (435, 72))
         Rating = f'{self.Rating:05d}'
         for n, i in enumerate(Rating):
@@ -248,7 +257,7 @@ class DrawBest(ScoreBaseImage):
         )
         self._sy.draw(
             700, 1570, 27, 
-            f'Designed by Yuri-YuzuChaN & BlueDeer233. Generated by {BOTNAME} BOT', 
+            f'Designed by Yuri-YuzuChaN & BlueDeer233. Adapted by AbyssSeeker', 
             self.text_color, 'mm', 5, (255, 255, 255, 255)
         )
 
@@ -410,27 +419,23 @@ def computeRa(
     return data
 
 
-async def generate(qqid: Optional[int] = None, username: Optional[str] = None) -> Union[MessageSegment, str]:
+async def generate(username: Optional[str] = None) -> Union[Image.Image, str]:
     """
     生成b50
-    
     Params:
-        `qqid`: QQ号
         `username`: 用户名
-        `icon`: 头像
     Returns:
-        `Union[MessageSegment, str]`
+        `Union[PIL.Image.Image, str]`
     """
     try:
-        if username:
-            qqid = None
-        userinfo = await maiApi.query_user_b50(qqid=qqid, username=username)
-        draw_best = DrawBest(userinfo, qqid)
-
-        msg = MessageSegment.image(image_to_base64(await draw_best.draw()))
+        if not hasattr(mai, 'total_list'):
+            return '曲库未初始化，请先执行一次主菜单或相关数据加载指令！'
+        userinfo = await maiApi.query_user_b50(username=username)
+        draw_best = DrawBest(userinfo)
+        # 直接返回图片对象
+        return await draw_best.draw()
     except (UserNotFoundError, UserNotExistsError, UserDisabledQueryError) as e:
-        msg = str(e)
+        return str(e)
     except Exception as e:
-        log.error(traceback.format_exc())
-        msg = f'未知错误：{type(e)}\n请联系Bot管理员'
-    return msg
+        print(traceback.format_exc())
+        return f'未知错误：{type(e)}\n请联系Bot管理员'

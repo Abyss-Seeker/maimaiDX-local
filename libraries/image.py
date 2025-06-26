@@ -5,7 +5,7 @@ from typing import Tuple, Union
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
-from .. import SHANGGUMONO, Path, coverdir
+from libraries.config import SHANGGUMONO, Path, coverdir
 
 
 class DrawText:

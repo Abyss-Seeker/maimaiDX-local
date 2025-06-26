@@ -23,31 +23,31 @@ Notes2 = namedtuple('Notes', ['tap', 'hold', 'slide', 'touch', 'brk'])
 
 class Chart(BaseModel):
     
-    notes: Union[Notes1, Notes2]
-    charter: str = None
+    notes: Optional[List[int]] = None
+    charter: Optional[str] = None
 
 
 class BasicInfo(BaseModel):
     
-    title: str
-    artist: str
-    genre: str
-    bpm: int
+    title: Optional[str] = ''
+    artist: Optional[str] = ''
+    genre: Optional[str] = ''
+    bpm: Optional[int] = 0
     release_date: Optional[str] = ''
-    version: str = Field(alias='from')
-    is_new: bool
+    version: Optional[str] = Field(default='', alias='from_')
+    is_new: Optional[bool] = False
 
 
 class Music(BaseModel):
     
-    id: str
-    title: str
-    type: str
-    ds: List[float]
-    level: List[str]
-    cids: List[int]
-    charts: List[Chart]
-    basic_info: BasicInfo
+    id: Optional[str] = ''
+    title: Optional[str] = ''
+    type: Optional[str] = ''
+    ds: Optional[List[float]] = []
+    level: Optional[List[str]] = []
+    cids: Optional[List[int]] = []
+    charts: Optional[List[Chart]] = []
+    basic_info: Optional[BasicInfo] = None
     stats: Optional[List[Optional[Stats]]] = []
     diff: Optional[List[int]] = []
 

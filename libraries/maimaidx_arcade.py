@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Union
 import aiohttp
 from pydantic import BaseModel
 
-from .. import arcades_json, loga
+from libraries.config import arcades_json
 from .maimaidx_music import writefile
 
 
@@ -146,7 +146,7 @@ async def download_arcade_info(save: bool = True) -> ArcadeList:
                 data = await req.json()
             else:
                 data = None
-                loga.error('获取机厅信息失败')
+                print('获取机厅信息失败')
         arcadelist = ArcadeList()
         if data is not None:
             if not arcade.arcades:
@@ -203,8 +203,8 @@ async def download_arcade_info(save: bool = True) -> ArcadeList:
             await writefile(arcades_json, [_.model_dump() for _ in arcadelist])
         return arcadelist
     except Exception:
-        loga.error(f'Error: {traceback.format_exc()}')
-        loga.error('获取机厅信息失败')
+        print(f'Error: {traceback.format_exc()}')
+        print('获取机厅信息失败')
 
 
 async def updata_arcade(arcadeName: str, num: str):

@@ -1,279 +1,195 @@
-# maimaiDX
 
-[![python3](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
-[![QQGroup](https://img.shields.io/badge/QQGroup-Join-blue)](https://qm.qq.com/q/gDIf3fGSPe)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+# maimaiDX 本地版
 
-移植自[mai-bot](https://github.com/Diving-Fish/mai-bot) 开源项目，基于 [HoshinoBotV2](https://github.com/Ice-Cirno/HoshinoBot) 的街机音游 **舞萌DX** 的查询插件
+这是一个基于 Yuri-YuzuChaN大佬的 maimaiDX 项目的本地版本，由 **AbyssSeeker** 移植，可以在本地运行，无需机器人框架。
 
-项目地址：https://github.com/Yuri-YuzuChaN/maimaiDX
+## 功能特性
 
-## 重要更新
+- 🎵 完整的舞萌DX查分功能
+- 🔍 多种查歌方式（关键词、定数、BPM、曲师、谱师、别名、ID）
+- 📊 B50查询和成绩分析
+- 🎯 完成表和定数表生成
+- 🎨 美观的图片渲染
+- 🔄 自动数据更新
+- ⚙️ 本地配置文件管理
 
-**2025-06-11**
+## 安装要求
 
-1. 更新 `舞萌DX2025` ，资源全部更换，更新部分依赖和文件，**请重新进行使用方法**
-2. 请修改 `static/group_alias_switch.json` 文件中的 `global` 字段为 `global_switch`，如果没有该文件或字段本身就为 `global_switch` 的请无视
+- Python 3.8+
+- 水鱼账号token（用于访问查分器API）
 
-## 使用方法
+## 快速开始
 
-1. 将该项目放在HoshinoBot插件目录 `modules` 下，或者clone本项目
-   
-    ``` git
-    git clone https://github.com/Yuri-YuzuChaN/maimaiDX
-    ```
-   
-2. 下载静态资源文件，将该压缩文件解压后，将 `static` 文件夹复制到插件根目录并覆盖，即 `maimaiDX/static`
+### 1. 克隆仓库
 
-   - [私人云盘](https://cloud.yuzuchan.moe/f/1bUn/Resource.7z)
-   - [onedrive](https://yuzuai-my.sharepoint.com/:u:/g/personal/yuzu_yuzuchan_moe/EdGUKRSo-VpHjT2noa_9EroBdFZci-tqWjVZzKZRTEeZkw?e=a1TM40)
+```bash
+git clone https://github.com/Abyss-Seeker/maimaiDX-local.git
+cd maimaiDX-local
+```
 
-3. 配置可选项，请修改 `maimaiDX/static/config.json` 文件
+### 2. 安装依赖
 
-   1. 如果您拥有查分器的开发者 `token`，请将 `token` 填入文件中的 `maimaidxtoken` 项
-   2. 如果你的服务器或主机不能顺利流畅的访问查分器和别名库的API，请配置代理。均为香港服务器代理中转，例如你的服务器访问查分器很困难，请设置 `maimaidxproberproxy` 为 `true`，别名库同理
-   3. 可选，是否将部分图片在保存在内存中，不需要请在设置 `SAVEINMEM` 为 `false`
-   ``` json
-   {
-      "maimaidxtoken": "maimaidxtoken",
-      "maimaidxproberproxy": true,
-      "maimaidxaliasproxy": false,
-      "saveinmem": false
-   }
-   ```
+```bash
+pip install -r requirements.txt
+```
 
-4. 安装插件所需模块：`pip install -r requirements.txt`
-5. 安装 `chromium`，**相关依赖已安装，请直接使用该指令执行**
-   
-   ``` shell
-   playwright install --with-deps chromium
-   ```
+### 3. 安装 Playwright 及 Chromium
 
-6. 安装 `微软雅黑` 字体，解决使用 `ginfo` 指令字体不渲染的问题，例如 `ubuntu`：`apt install fonts-wqy-microhei`，`windows` 平台可跳过
-7. 在 `config/__bot__.py` 模块列表中添加 `maimaiDX`
-8. 重启HoshinoBot
+```bash
+playwright install --with-deps chromium
+```
 
-## 更新说明
+> 如未安装 Playwright，请先运行：
+>
+> ```bash
+> pip install playwright
+> ```
 
-**2025-06-11**
+### 4. 配置Token
 
-1. 1. 更新 `舞萌DX2025` ，资源全部更换，更新部分依赖和文件
+在 `static/config.json` 文件中配置您的水鱼账号token：
 
-**2025-03-28**
+```json
+{
+    "maimaidxtoken": "您的token",
+    "maimaidxproberproxy": false,
+    "maimaidxaliasproxy": false
+}
+```
 
-1. 预更新 `舞萌DX2025` UI
-2. 修改所有 `BOT管理员` 私聊指令为群聊指令：`更新别名库`、`更新maimai数据`、`更新定数表`、`更新完成表`
+### 5. 运行程序
 
-**2024-07-24**
+```bash
+python main.py
+```
 
-1. 更新部分牌子完成表和 `SyncPlay` 图片
-2. 修复 `新增机厅` 指令 `id` 未增加的问题
-3. 修复 `牌子进度` 指令 `sync` 未匹配的问题
-4. 修复 `别名查歌` 指令查询到已删除的曲目时发生错误的问题
+或者使用启动脚本：
 
-**2024-06-07**
+```bash
+python run.py
+```
 
-1. 更新至 `舞萌DX 2024`
-2. 更换所有图片绘制，需删除除 `json` 后缀的所有文件，**请重新进行使用方法第二步**
-3. 更改部分 `json` 文件名称，便于识别，具体文件如下，**请务必修改文件名，否则开关文件以及本地别名文件将不会被读取**
-   - `all_alias.json`    修改为 `music_alias.json`
-   - `local_alias.json`  修改为 `local_music_alias.json`
-   - `chart_stats.json`  修改为 `music_chart.json`
-   - `group_alias.json`  修改为 `group_alias_switch.json`
-   - `guess_config.json` 修改为 `group_guess_switch.json`
-4. 新增管理员私聊指令 `更新完成表`，用于更新 `BUDDiES` 版本 `双系` 牌子
-5. 新增指令 `完成表`，可查询牌子完成表，例如：`祝极完成表`
-6. 新增指令 `猜曲绘`
-7. 查看谱面支持计算个人加分情况，指令包括 `是什么歌`，`id`
-8. 指令 `mai什么` 支持随机发送推分谱面，指令中需包含 `加分`，`上分` 字样，例如：`今日mai打什么上分`
-9.  修改指令 `分数列表` 和 `进度` 发送方式
-10. 优化所有模块
+## 使用说明
 
-**2024-03-12**
+### 基本命令
 
-1. 变更别名服务器地址
-2. 修改所有别名请求以及参数
-3. 开放普通用户申请别名
+- `help` —— 查看所有可用命令
+- `exit` —— 退出程序
 
-**2024-01-14**
+### 查分相关
 
-1. 优先使用本地谱面
-2. 使用 `numpy` 模块重新绘制定数表
+- `b50 [用户名]` —— 查询B50
+- `minfo [用户名] [曲名/ID]` —— 查询游玩数据（支持带空格的曲名）
+- `ginfo [难度] [曲名/ID]` —— 查询曲目统计（难度为绿/黄/红/紫/白）
+- `score [难度+ID] [分数]` 或 `score [难度] [ID] [分数]` —— 分数线计算
 
-**2023-09-23**
+### 查歌相关
 
-1. 重写 `API` 方法
-2. 重写机厅模块
-3. 将同步生成定数表方法修改为异步方法，防止堵塞进程
-4. 将 `当前别名投票` 发送方式修改为图片形式
-5. 本地添加别名单独存储为一个文件，不再添加在暂存别名文件中
+- `查歌 [关键词] [页数]` —— 关键词查歌，支持分页
+- `定数查歌 [定数下限] [定数上限] [页数]` —— 定数查歌，支持范围和分页
+- `bpm查歌 [bpm下限] [bpm上限] [页数]` —— BPM查歌，支持范围和分页
+- `曲师查歌 [曲师] [页数]` —— 曲师查歌
+- `谱师查歌 [谱师] [页数]` —— 谱师查歌
+- `[别名]是什么歌` 或 `[别名]是啥歌` —— 别名查歌
+- `id[数字]` —— 通过ID查歌
 
-**2023-08-10**
+### 表格/图片相关
 
-1. 新增后缀指令 `定数表`，`完成表`，查询指定等级的定数表和完成表，例如：`13+完成表`
-2. 新增BOT管理员私聊指令 `更新定数表`，用于生成和更新定数表
-3. 新增BOT管理员私聊指令 `更新maimai数据`，用于版本更新手动更新bot已存数据
-4. 拆分并移除 `maimaidx_project.py` 的代码和文件，便于所有功能维护
-5. 修复曲绘不存在时下载错误的问题
-6. 修复猜歌提前发出答案的bug
-7. 修改指令 `minfo` 部分绘图
+- `[难度/plate]完成表` —— 生成完成表（如"紫完成表"）
+- `[难度]定数表` —— 生成定数表（如"14+定数表"）
 
-**2023-06-15**
+### 数据更新与维护
 
-1. 新增添加本地别名的功能
+- `update_alias` 或 `更新别名库` —— 更新别名库
+- `update_rating_table` 或 `更新定数表` —— 更新定数表
+- `update_plate_table` 或 `更新完成表` —— 更新完成表
+- `init` 或 `load` —— 手动重新初始化曲库数据（如数据损坏或首次运行）
 
-**2023-06-09**
+### 运势相关
 
-1. 更新至 `舞萌DX 2023`
-2. 移除指令 `b40`
-3. 更换静态资源
-4. 修改指令 `b50` 部分绘图
+- `今日舞萌`、`今日mai`、`今日运势` —— 今日舞萌运势（自动生成图片）
 
-**2023-04-22**
+---
 
-1. 限制所有网络请求时长
-2. 新增别名文件本地备份
-3. 新增ginfo指令默认使用紫谱数据
+> **注意：**
+>
+> - 程序会自动检查并加载本地缓存数据，通常无需手动执行 `init` 命令。
+> - 所有生成的图片/文件会自动保存到 `output/` 目录。
+> - 需要有效的水鱼账号token。
 
-**2023-04-21**
+---
 
-1. 新增BOT管理员私聊指令 `全局关闭别名推送` 和 `全局开启别名推送`，关闭所有群的推送消息，无论先前开启还是关闭
-2. 修复新版本更新后API暂未收录曲目的问题
-3. 新增乐曲游玩总览 `ginfo` 指令
-4. 新增猜歌库根据乐曲游玩次数添加
-5. 新增每日更新机厅信息，删除旧版更新机厅机制
+## 文件结构
 
-**2023-04-15**
+```
+maimaiDX-local/
+├── main.py              # 主程序入口
+├── run.py               # 启动脚本
+├── path_manager.py      # 路径管理
+├── config_manager.py    # 配置管理
+├── __init__.py          # 项目初始化
+├── command/             # 命令模块
+├── libraries/           # 核心库
+├── static/              # 静态资源
+│   ├── config.json      # 配置文件
+│   ├── mai/             # 游戏资源
+│   └── *.ttf            # 字体文件
+└── output/              # 输出目录
+```
 
-1. 将获取数据的方式由启动Bot时获取改为连接到CQHTTP后获取
-2. 修复因查分器API内容变动而无法启动Bot的问题
+## 配置说明
 
-**2023-03-29**
+### config.json
 
-1. 重制 `b40/b50` ，`minfo` 和曲目信息的绘图
-2. 修改投票网页端，改成共用网站
-3. 修改垃圾代码
+- `maimaidxtoken`: 水鱼账号token（必需）
+- `maimaidxproberproxy`: 是否使用代理（可选）
+- `maimaidxaliasproxy`: 是否使用别名代理（可选）
 
-**2023-03-02**
+## 注意事项
 
-1. 新增 `开启别名推送` 和 `关闭别名推送` 指令
+1. **Token配置**: 首次使用前必须在 `static/config.json` 中配置有效的水鱼账号token
+2. **数据初始化**: 程序首次运行会自动下载和初始化曲库数据
+3. **网络连接**: 需要稳定的网络连接来访问查分器API
+4. **资源文件**: 确保 `static` 目录下的字体和图片资源完整
 
-**2023-02-25**
+## 故障排除
 
-1. 修复猜歌答对后无法结束的问题
+### 常见问题
 
-**2023-02-23**
+1. **Token错误**: 检查 `static/config.json` 中的token是否正确
+2. **网络问题**: 检查网络连接，必要时配置代理
+3. **数据缺失**: 运行 `init` 命令重新初始化数据
+4. **字体缺失**: 确保 `static` 目录下有必要的字体文件
 
-1. 投票网页端
+### 错误信息
 
-**2023-02-22**
+- `未配置maimaidxtoken`: 需要在配置文件中设置token
+- `开发者token有误`: token无效或已过期
+- `no such user`: 用户名不存在
+- `user not exists`: 用户不存在
 
-1. 修复启动BOT时无法获取所有曲目信息的问题，添加本地缓存
-2. 修改别名库，使用API获取和添加，并同步所有使用该插件的BOT
-3. 修改猜歌和别名功能
-4. 新增指令 `当前别名投票` 和 `同意别名`
+## 开发说明
 
-**2023-2-18**
+### 路径管理
 
-1. 别称同步临时解决方案 #47
+项目使用 `path_manager.py` 统一管理所有路径，避免相对路径问题。
 
-**2023-2-15**
+### 配置管理
 
-1. 更新本地缓存水鱼网数据 #43
+使用 `config_manager.py` 管理用户配置，支持动态加载和验证。
 
-**2022-9-14**
+### 模块结构
 
-1. 新增查询单曲指令 `minfo`
-2. 修改查曲绘图
+- `command/`: 各种命令的实现
+- `libraries/`: 核心功能库
+- `static/`: 静态资源和配置
 
-**2022-8-30**
+## 许可证
 
-1. 修复新版b40/b50 isinstance bug [#38](https://github.com/Yuri-YuzuChaN/maimaiDX/issues/38)
-2. 修复新版b40/b50 找不到图片问题
-3. 修复安慰分隐性bug
+基于原项目的许可证，详见 `LICENSE` 文件。
 
-**2022-08-27**
+## 致谢
 
-1. 修复b40/b50小数点后四位错误的问题
-
-**2022-08-25**
-
-1. 修复猜歌模块发送曲绘时为未知曲绘的问题
-
-**2022-08-16**
-
-1. 修改 `b40/b50` 指令绘图，如不喜欢请将 `libraries/maimaidx_project.py` 第`6`行 `maimai_best_50` 改成 `maimai_best_40`
-2. 修改查曲绘图
-
-**2022-07-11**
-
-1. 修复指令 `分数列表` 没有提供2022谱面的问题
-
-**2022-06-23**
-
-1. 支持2022
-2. 修改所有曲绘后缀
-3. 修改获取在线文件的路径
-
-**2022-03-10**
-
-1. 新增段位显示，感谢 [Kurokitu](https://github.com/Kurokitu) 提供源码及资源
-
-**2022-02-13**
-
-1. 修复部分新曲没有难易度参考的问题
-
-**2022-01-27**
-
-1. 修复添加/删除别名无效的问题
-
-**2022-01-16**
-
-1. 修复b40/b50查询@Ta人情况下无效的问题
-
-**2022-01-03**
-
-1. 修改获取音乐数据的函数，不在使用同步进程
-2. 不再使用正则表达式获取@人员的QQ号
-3. 不再使用CQ码方式发送图片
-4. 修改大部分源码
-
-**2021-11-15**
-
-1. 在请求获取maimaiDX数据的函数添加 `@retry` 装饰器，遇到请求数据失败的情况时重新尝试请求
-
-**2021-10-18**
-
-1. 添加排卡功能，感谢 [CrazyKid](https://github.com/CrazyKidCN)
-
-**2021-10-14**
-
-1. 更新查看推荐的上分乐曲
-2. 更新查看牌子完成进度
-3. 更新查看等级评价完成进度
-4. 查看水鱼网站的用户ra排行
-
-**2021-09-29**
-
-1. 更新b50、乐曲推荐功能，感谢 [BlueDeer233](https://github.com/BlueDeer233) 
-
-**2021-09-13** 
-
-1. 更新猜歌功能以及开关，感谢 [BlueDeer233](https://github.com/BlueDeer233) 
-
-
-## 鸣谢
-
-感谢 [zhanbao2000](https://github.com/zhanbao2000) 提供的 `nonebot2` 分支
-
-感谢 [CrazyKid](https://github.com/CrazyKidCN) 提供的源码支持
-
-感谢 [Diving-Fish](https://github.com/Diving-Fish) 提供的源码支持
-
-感谢 [BlueDeer233](https://github.com/BlueDeer233) 提供猜歌功能的源码支持
-
-## License
-
-MIT
-
-您可以自由使用本项目的代码用于商业或非商业的用途，但必须附带 MIT 授权协议。
+- 原项目: [Yuri-YuzuChaN/maimaiDX](https://github.com/Yuri-YuzuChaN/maimaiDX)
+- 查分器API: [diving-fish/maimaidx-prober](https://github.com/diving-fish/maimaidxprober)
+- 各位测试的朋友们

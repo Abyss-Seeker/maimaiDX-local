@@ -3,7 +3,7 @@ from typing import Any, Dict
 
 from aiohttp import ClientSession, ClientTimeout
 
-from .. import UUID, config_json
+from libraries.config import config_json
 from .maimaidx_error import *
 from .maimaidx_model import *
 
@@ -32,9 +32,10 @@ class MaimaiAPI:
         self.token = None
         self.MaiProberProxyAPI = None
         self.MaiAliasProxyAPI = None
+        self.load_token_proxy()
     
     def load_config(self) -> MaiConfig:
-        return MaiConfig.model_validate(json.load(open(config_json, 'r', encoding='utf-8')))
+        return MaiConfig.parse_obj(json.load(open(config_json, 'r', encoding='utf-8')))
     
     def load_token_proxy(self) -> None:
         self.MaiProberProxyAPI = self.MaiProberAPI if not self.config.maimaidxproberproxy else self.MaiProxyAPI + '/maimaidxprober'
@@ -59,7 +60,7 @@ class MaimaiAPI:
             async with session.request(method, self.MaiAliasProxyAPI + endpoint, **kwargs) as res:
                 if res.status == 200:
                     data = await res.json()
-                    return APIResult.model_validate(data)
+                    return APIResult.parse_obj(data)
                 elif res.status == 500:
                     raise ServerError
                 else:
@@ -125,109 +126,85 @@ class MaimaiAPI:
     async def query_user_b50(
         self, 
         *, 
-        qqid: Optional[int] = None, 
         username: Optional[str] = None
     ) -> UserInfo:
         """
         获取玩家B50
-        
         Params:
-            `qqid`: QQ号
             `username`: 用户名
         Returns:
             `UserInfo` b50数据模型
         """
         json = {}
-        if qqid:
-            json['qq'] = qqid
         if username:
             json['username'] = username
         json['b50'] = True
-
-        return UserInfo.model_validate(await self._requestmai('POST', '/query/player', json=json))
+        return UserInfo.parse_obj(await self._requestmai('POST', '/query/player', json=json))
 
     async def query_user_plate(
         self,
         *,
-        qqid: Optional[int] = None,
         username: Optional[str] = None,
         version: Optional[List[str]] = None
     ) -> List[PlayInfoDefault]:
         """
         请求用户数据
-
         Params:
-            `qqid`: 用户QQ
             `username`: 查分器用户名
             `version`: 版本
         Returns:
             `List[PlayInfoDefault]` 数据列表
         """
         json = {}
-        if qqid:
-            json['qq'] = qqid
         if username:
             json['username'] = username
         if version:
             json['version'] = version
         result = await self._requestmai('POST', '/query/plate', json=json)
-        return [PlayInfoDefault.model_validate(d) for d in result['verlist']]
+        return [PlayInfoDefault.parse_obj(d) for d in result['verlist']]
 
     async def query_user_get_dev(
         self, 
         *, 
-        qqid: Optional[int] = None, 
         username: Optional[str] = None
     ) -> UserInfoDev:
         """
         使用开发者接口获取用户数据，请确保拥有和输入了开发者 `token`
-
         Params:
-            qqid: 用户QQ
             username: 查分器用户名
         Returns:
             `UserInfoDev` 开发者用户信息
         """
         params = {}
-        if qqid:
-            params['qq'] = qqid
         if username:
             params['username'] = username
-        
         result = await self._requestmai('GET', '/dev/player/records', params=params)
-        return UserInfoDev.model_validate(result)
+        return UserInfoDev.parse_obj(result)
 
     async def query_user_post_dev(
         self,
         *,
-        qqid: Optional[int] = None,
         username: Optional[str] = None,
         music_id: Union[str, int, List[Union[str, int]]]
     ) -> List[PlayInfoDev]:
         """
         使用开发者接口获取用户指定曲目数据，请确保拥有和输入了开发者 `token`
-
         Params:
-            `qqid`: 用户QQ
             `username`: 查分器用户名
             `music_id`: 曲目id，可以为单个ID或者列表
         Returns:
             `List[PlayInfoDev]` 开发者成绩列表
         """
         json = {}
-        if qqid:
-            json['qq'] = qqid
         if username:
             json['username'] = username
         json['music_id'] = music_id
-        
         result = await self._requestmai('POST', '/dev/player/record', json=json)
         if result == {}:
             raise MusicNotPlayError
-        
         if isinstance(music_id, list):
-            return [PlayInfoDev.model_validate(d) for k, v in result.items() for d in v]
-        return [PlayInfoDev.model_validate(d) for d in result[str(music_id)]]
+            return [PlayInfoDev.parse_obj(d) for k, v in result.items() for d in v]
+        return [PlayInfoDev.parse_obj(d) for d in result[str(music_id)]]
 
     async def rating_ranking(self) -> List[UserRanking]:
         """
@@ -237,7 +214,7 @@ class MaimaiAPI:
             `List[UserRanking]` 按`ra`从高到低排序后的查分器排行模型列表
         """
         result = await self._requestmai('GET', '/rating_ranking')
-        return sorted([UserRanking.model_validate(u) for u in result], key=lambda x: x.ra, reverse=True)
+        return sorted([UserRanking.parse_obj(u) for u in result], key=lambda x: x.ra, reverse=True)
 
     async def get_plate_json(self) -> Dict[str, List[int]]:
         """获取所有版本牌子完成需求"""
@@ -266,11 +243,11 @@ class MaimaiAPI:
         """
         result = await self._requestalias('GET', '/getsongs', params={'name': name})
         if result.code == 3006:
-            return [AliasStatus.model_validate(s) for s in result.content]
+            return [AliasStatus.parse_obj(s) for s in result.content]
         elif result.code == 1004:
             return []
         elif result.code == 0:
-            return [Alias.model_validate(s) for s in result.content]
+            return [Alias.parse_obj(s) for s in result.content]
         else:
             raise UnknownError
 
@@ -285,7 +262,7 @@ class MaimaiAPI:
         """
         result = await self._requestalias('GET', '/getsongsalias', params={'song_id': song_id})
         if result.code == 0:
-            return Alias.model_validate(result.content)
+            return Alias.parse_obj(result.content)
         elif result.code == 1004:
             return result.content
         else:
@@ -295,7 +272,7 @@ class MaimaiAPI:
         """获取当前正在进行的别名投票"""
         result = await self._requestalias('GET', '/getaliasstatus')
         if result.code == 0:
-            return [AliasStatus.model_validate(s) for s in result.content]
+            return [AliasStatus.parse_obj(s) for s in result.content]
         elif result.code == 1004:
             return []
         else:

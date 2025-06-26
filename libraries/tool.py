@@ -7,7 +7,7 @@ from typing import Any, Union
 import aiofiles
 from playwright.async_api import async_playwright
 
-from .. import SNAPSHOT_JS, pie_html_file
+from libraries.config import SNAPSHOT_JS, pie_html_file
 
 
 def qqhash(qq: int):

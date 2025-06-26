@@ -9,7 +9,7 @@ from typing import Tuple
 import numpy as np
 from PIL import Image
 
-from .. import *
+from libraries.config import *
 from .image import image_to_base64, music_picture
 from .maimaidx_api_data import maiApi
 from .maimaidx_error import *
@@ -245,10 +245,10 @@ async def get_music_list() -> MusicList:
             music_data = await maiApi.music_data()
             await writefile(music_file, music_data)
         except asyncio.exceptions.TimeoutError:
-            log.error('maimaiDX曲库数据获取失败，请检查网络环境。已切换至本地暂存文件')
+            print('maimaiDX曲库数据获取失败，请检查网络环境。已切换至本地暂存文件')
             music_data = await openfile(music_file)
     except FileNotFoundError:
-        log.error(dataerror)
+        print(dataerror)
         raise FileNotFoundError
     
     # ChartStats
@@ -257,10 +257,10 @@ async def get_music_list() -> MusicList:
             chart_stats = await maiApi.chart_stats()
             await writefile(chart_file, chart_stats)
         except asyncio.exceptions.TimeoutError:
-            log.error('maimaiDX数据获取错误，请检查网络环境，已切换至本地暂存文件')
+            print('maimaiDX数据获取错误，请检查网络环境，已切换至本地暂存文件')
             chart_stats = await openfile(chart_file)
     except FileNotFoundError:
-        log.error(charterror)
+        print(charterror)
         raise FileNotFoundError
 
     total_list = MusicList()
@@ -289,26 +289,26 @@ async def get_music_alias_list() -> AliasList:
         alias_data = await maiApi.get_alias()
         await writefile(alias_file, alias_data)
     except asyncio.exceptions.TimeoutError:
-        log.error('获取别名超时。已切换至本地暂存文件')
+        print('获取别名超时。已切换至本地暂存文件')
         alias_data = await openfile(alias_file)
         if not alias_data:
-            log.error(aliaserror)
+            print(aliaserror)
             raise ValueError
     except ServerError as e:
-        log.error(e)
+        print(e)
         alias_data = await openfile(alias_file)
     except UnknownError:
-        log.error('获取所有曲目别名信息错误，请检查网络环境。已切换至本地暂存文件')
+        print('获取所有曲目别名信息错误，请检查网络环境。已切换至本地暂存文件')
         alias_data = await openfile(alias_file)
         if not alias_data:
-            log.error(aliaserror)
+            print(aliaserror)
             raise ValueError
 
     total_alias_list = AliasList()
     for _a in filter(lambda x: mai.total_list.by_id(x['SongID']), alias_data):
         if (song_id := str(_a['SongID'])) in local_alias_data:
             _a['Alias'].extend(local_alias_data[song_id])
-        total_alias_list.append(Alias.model_validate(_a))
+        total_alias_list.append(Alias.parse_obj(_a))
 
     return total_alias_list
 
@@ -327,7 +327,7 @@ async def update_local_alias(id: str, alias_name: str) -> bool:
         await writefile(local_alias_file, local_alias_data)
         return True
     except Exception as e:
-        log.error(f'添加本地别名失败: {e}')
+        print(f'添加本地别名失败: {e}')
         return False
 
 

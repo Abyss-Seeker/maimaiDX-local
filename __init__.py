@@ -1,22 +1,19 @@
+# 本文件作为全局常量、路径、配置项唯一入口，供全项目 import
 import uuid
 from pathlib import Path
 from typing import Dict, List
 
-from hoshino import Service, priv
-from hoshino.config import NICKNAME
-from hoshino.log import new_logger
+# 导入路径管理器
+from .path_manager import *
 
-### 必须
-log = new_logger('maimaiDX')
-loga = new_logger('maimaiDXArcade')
-BOTNAME = NICKNAME if isinstance(NICKNAME, str) else list(NICKNAME)[0]
+# BOTNAME/log 替代
+BOTNAME = 'AbyssSeeker'
+log = print
 
-
-SV_HELP = '请使用 帮助maimaiDX 查看帮助'
-sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=True, help_=SV_HELP)
+# SV_HELP = '请使用 帮助maimaiDX 查看帮助'
+# sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=True, help_=SV_HELP)
 
 public_addr = 'https://www.yuzuchan.moe/vote'
-
 
 # ws
 UUID = uuid.uuid1()
@@ -27,34 +24,30 @@ SNAPSHOT_JS = (
     "getDataURL({type: 'PNG', pixelRatio: 2, excludeComponents: ['toolbox']})"
 )
 
+# 文件路径 - 使用path_manager中的定义
+Root: Path = PROJECT_ROOT
+static: Path = STATIC_DIR
 
-# 文件路径
-Root: Path = Path(__file__).parent
-static: Path = Root / 'static'
+arcades_json: Path = ARCADES_JSON                    # 机厅
+config_json: Path = CONFIG_JSON                      # token
+alias_file: Path = ALIAS_FILE                        # 别名暂存文件
+local_alias_file: Path = LOCAL_ALIAS_FILE            # 本地别名文件
+music_file: Path = MUSIC_FILE                        # 曲目暂存文件
+chart_file: Path = CHART_FILE                        # 谱面数据暂存文件
+guess_file: Path = GUESS_FILE                        # 猜歌开关群文件
+group_alias_file: Path = GROUP_ALIAS_FILE            # 别名推送开关群文件
+pie_html_file: Path = PIE_HTML_FILE                  # 饼图html文件
 
-arcades_json: Path = static / 'arcades.json'                    # 机厅
-config_json: Path = static / 'config.json'                      # token
-alias_file: Path = static / 'music_alias.json'                  # 别名暂存文件
-local_alias_file: Path = static / 'local_music_alias.json'      # 本地别名文件
-music_file: Path = static / 'music_data.json'                   # 曲目暂存文件
-chart_file: Path = static / 'music_chart.json'                  # 谱面数据暂存文件
-guess_file: Path = static / 'group_guess_switch.json'           # 猜歌开关群文件
-group_alias_file: Path = static / 'group_alias_switch.json'     # 别名推送开关群文件
-pie_html_file: Path = static / 'temp_pie.html'                  # 饼图html文件
+# 静态资源路径 - 使用path_manager中的定义
+maimaidir: Path = MAIMAI_DIR
+coverdir: Path = COVER_DIR
+ratingdir: Path = RATING_DIR
+platedir: Path = PLATE_DIR
 
-
-# 静态资源路径
-maimaidir: Path = static / 'mai' / 'pic'
-coverdir: Path = static / 'mai' / 'cover'
-ratingdir: Path = static / 'mai' / 'rating'
-platedir: Path = static / 'mai' / 'plate'
-
-
-# 字体路径
-SIYUAN: Path =  static / 'ResourceHanRoundedCN-Bold.ttf'
-SHANGGUMONO: Path = static / 'ShangguMonoSC-Regular.otf'
-TBFONT: Path = static / 'Torus SemiBold.otf'
-
+# 字体路径 - 使用path_manager中的定义
+SIYUAN: Path = SIYUAN_FONT
+SHANGGUMONO: Path = SHANGGUMONO_FONT
+TBFONT: Path = TB_FONT
 
 # 常用变量
 SONGS_PER_PAGE: int = 25
