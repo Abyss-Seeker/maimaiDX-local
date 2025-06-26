@@ -195,7 +195,7 @@ async def score_cli(args: str) -> str:
         reduce = 101 - score_line
 
         if reduce <= 0 or reduce >= 101:
-            return '分数线必须在0-100之间'
+            return '分数线必须在0-101之间'
 
         msg = f'''\
             {music.title}「{level_labels2[level_index]}」
